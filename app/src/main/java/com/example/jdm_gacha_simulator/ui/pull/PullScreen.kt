@@ -1,5 +1,6 @@
 package com.example.jdm_gacha_simulator.ui.pull
 
+import android.content.Context
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -9,81 +10,142 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.jdm_gacha_simulator.ui.navigation.Routes
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import com.example.jdm_gacha_simulator.api.ApiService
+import com.example.jdm_gacha_simulator.data.PNGImage
+import com.example.jdm_gacha_simulator.utils.SharedPrefsManager
+//import retrofit2.Call
+//import retrofit2.Callback
+//import retrofit2.Response
+//import com.example.jdm_gacha_simulator.api.RetrofitClient
+import com.example.jdm_gacha_simulator.utils.SessionCollection
+import com.example.jdm_gacha_simulator.utils.getDrawableResIdByName
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import com.example.jdm_gacha_simulator.utils.GachaLogic
+
+
+
+@Composable
+fun PullCard(item: PNGImage, context: Context) {
+    val imageRes = getDrawableResIdByName(context, item.name)
+    val bgColor = when (item.rarity) {
+        "Secret" -> Color(0xFFB71C1C)
+        "Mythic" -> Color(0xFFF06292)
+        "Legendary" -> Color(0xFFFFD700)
+        "Epic" -> Color(0xFF7E57C2)
+        "Rare" -> Color(0xFF42A5F5)
+        else -> MaterialTheme.colorScheme.surfaceVariant
+    }
+
+    Image(
+        painter = painterResource(id = imageRes),
+        contentDescription = item.name,
+        Modifier
+            .height(175.dp)
+    )
+
+}
+
 
 @Composable
 fun PullScreen(navController: NavController) {
-    var pullResults by remember { mutableStateOf<List<String>>(emptyList()) }
+    val context = LocalContext.current
+    var pullResults by remember { mutableStateOf<List<PNGImage>>(emptyList()) }
 
-    // Centered layout
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        contentAlignment = Alignment.TopCenter
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Top content: Header + Pull Results
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 32.dp)
+                .align(Alignment.TopStart)
         ) {
             Text(
                 text = "Pull 10 PNGs!",
                 style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
             )
 
+            if (pullResults.isNotEmpty()) {
+                Text(
+                    text = "Pulled Results",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+
+                )
+
+                val groups = listOf(
+                    pullResults.take(3),
+                    pullResults.drop(3).take(2),
+                    pullResults.drop(5).take(3),
+                    pullResults.drop(8).take(2)
+                )
+
+                Column(
+                    modifier = Modifier
+                        .wrapContentHeight()
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    for (row in groups) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally)
+                        ) {
+                            for (item in row) {
+                                PullCard(item = item, context = context)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Bottom content: Total + Buttons
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+
+        ) {
+            Text(
+                text = "Total Pulled: ${SessionCollection.getTotalPullCount()}",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
             Button(
                 onClick = {
-                    pullResults = List(10) { index -> "Car Image ${index + 1}" }
+                    pullResults = List(10) { GachaLogic.rollOnce() }
+                    SessionCollection.addPulledItems(pullResults)
                 },
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 24.dp)
+                shape = RoundedCornerShape(6.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Text("10 Pull")
             }
 
             OutlinedButton(
                 onClick = {
-                    // ✅ Navigate to Collection Screen
                     navController.navigate(Routes.COLLECTION)
                 },
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(6.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 12.dp)
+                    .padding(top = 4.dp)
             ) {
                 Text("View Collection")
-            }
-
-            if (pullResults.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(32.dp))
-
-                Text(
-                    text = "Pulled Results",
-                    style = MaterialTheme.typography.titleMedium
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Card(
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        pullResults.forEachIndexed { index, item ->
-                            Text(
-                                text = "${index + 1}. $item",
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.padding(vertical = 4.dp)
-                            )
-                        }
-                    }
-                }
             }
         }
     }
 }
+

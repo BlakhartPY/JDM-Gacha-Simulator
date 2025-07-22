@@ -1,4 +1,6 @@
 package com.example.jdm_gacha_simulator.data
 
-class User {
-}
+data class User(
+    val id: String,
+    val username: String
+)
