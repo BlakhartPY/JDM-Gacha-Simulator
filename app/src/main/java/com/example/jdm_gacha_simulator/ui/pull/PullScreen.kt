@@ -30,7 +30,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.draw.scale
 import com.example.jdm_gacha_simulator.utils.GachaLogic
+
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import com.example.jdm_gacha_simulator.R
 
 
 
@@ -63,6 +71,14 @@ fun PullScreen(navController: NavController) {
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Top content: Header + Pull Results
+        Image(
+            painter = painterResource(id = com.example.jdm_gacha_simulator.R.drawable.background02),
+            contentDescription = "Background",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+
+        // 🔹 Foreground content
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -70,18 +86,21 @@ fun PullScreen(navController: NavController) {
         ) {
             Text(
                 text = "Pull 10 PNGs!",
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.White // Better for games with a dark background
+                ),
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
 
             if (pullResults.isNotEmpty()) {
                 Text(
                     text = "Pulled Results",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
 
                 val groups = listOf(
@@ -120,7 +139,10 @@ fun PullScreen(navController: NavController) {
         ) {
             Text(
                 text = "Total Pulled: ${SessionCollection.getTotalPullCount()}",
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                ),
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
             Button(
@@ -129,10 +151,24 @@ fun PullScreen(navController: NavController) {
                     SessionCollection.addPulledItems(pullResults)
                 },
                 shape = RoundedCornerShape(6.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp, start = 16.dp, end = 16.dp)
             ) {
-                Text("10 Pull")
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.pullbutton), // Replace with your image resource
+                        contentDescription = "Pull Icon",
+                        modifier = Modifier
+                            .scale(1.6f)
+                    )
+
+                }
             }
+
 
             OutlinedButton(
                 onClick = {
@@ -141,10 +177,22 @@ fun PullScreen(navController: NavController) {
                 shape = RoundedCornerShape(6.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 4.dp)
+                    .padding(top = 4.dp, start = 16.dp, end = 16.dp)
             ) {
-                Text("View Collection")
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.viewcollectionbutton), // Replace with your image resource
+                        contentDescription = "Collection Icon",
+                        modifier = Modifier
+                            .scale(1.6f)
+                    )
+
+                }
             }
+
         }
     }
 }

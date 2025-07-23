@@ -14,6 +14,14 @@ import com.example.jdm_gacha_simulator.api.ApiService
 import com.example.jdm_gacha_simulator.data.User
 import com.example.jdm_gacha_simulator.ui.navigation.Routes
 import com.example.jdm_gacha_simulator.utils.SharedPrefsManager
+
+import androidx.compose.foundation.Image
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
+import com.example.jdm_gacha_simulator.R
+import androidx.compose.ui.graphics.Color
+
 //import retrofit2.Call
 //import retrofit2.Callback
 //import retrofit2.Response
@@ -28,23 +36,28 @@ fun LoginScreen(navController: NavController) {
 
     Box(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
+            .fillMaxSize(),
+
         contentAlignment = Alignment.Center
     ) {
+
+        Image(
+            painter = painterResource(id = R.drawable.background01),
+            contentDescription = "Background",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(
-                text = "Welcome to JDM Gacha Simulator!",
-                style = MaterialTheme.typography.titleLarge
-            )
+
 
             OutlinedTextField(
                 value = username,
                 onValueChange = { username = it },
-                label = { Text("Username") },
+                label = { Text("Username", color = Color.White) },
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -54,13 +67,14 @@ fun LoginScreen(navController: NavController) {
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Password") },
+                label = { Text("Password", color = Color.White) },
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 16.dp)
             )
+
 
             Button(
                 onClick = {
@@ -73,10 +87,24 @@ fun LoginScreen(navController: NavController) {
                     }
                 },
                 modifier = Modifier
-                    .padding(top = 24.dp)
+                    .padding(top = 24.dp, start = 16.dp, end = 16.dp)
+
+
                     .fillMaxWidth()
             ) {
-                Text("Start")
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.button01),
+                        contentDescription = "Login Icon",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .scale(1.6f)
+                    )
+
+                }
             }
 
 

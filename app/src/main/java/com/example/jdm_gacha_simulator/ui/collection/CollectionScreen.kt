@@ -21,8 +21,15 @@ import com.example.jdm_gacha_simulator.utils.getDrawableResIdByName
 import androidx.navigation.NavController
 import androidx.compose.runtime.*
 import androidx.compose.foundation.lazy.grid.*
+import androidx.compose.ui.draw.scale
 import kotlin.collections.sortedBy
 import kotlin.collections.sortedByDescending
+
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import com.example.jdm_gacha_simulator.R
+
 @Composable
 fun CollectionScreen(navController: NavController) {
     val context = LocalContext.current
@@ -48,83 +55,129 @@ fun CollectionScreen(navController: NavController) {
             } else {
                 entries.sortedByDescending { entry -> entry.value }
             }
+
             else -> if (ascending) {
                 entries.sortedBy { entry -> rarityOrder[entry.key.rarity] ?: Int.MAX_VALUE }
             } else {
-                entries.sortedByDescending { entry -> rarityOrder[entry.key.rarity] ?: Int.MIN_VALUE }
+                entries.sortedByDescending { entry ->
+                    rarityOrder[entry.key.rarity] ?: Int.MIN_VALUE
+                }
             }
         }
     }
 
+    Box(modifier = Modifier.fillMaxSize()) {
+        // 🔹 Background image
+        Image(
+            painter = painterResource(id = com.example.jdm_gacha_simulator.R.drawable.background02),
+            contentDescription = "Background",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
 
-
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp)
-        ) {
-            IconButton(onClick = { navController.popBackStack() }) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Back"
+        Column(modifier = Modifier.fillMaxSize()) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+            ) {
+                IconButton(onClick = { navController.popBackStack() }) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color.White
+                    )
+                }
+                Text(
+                    text = "Your Collection",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = Color.White
                 )
             }
-            Text(
-                text = "Your Collection",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            Button(onClick = {
-                sortMode = "rarity"
-                ascending = !ascending
-            }) {
-                Text("Sort by Rarity")
-            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                Button(onClick = {
+                    sortMode = "rarity"
+                    ascending = !ascending
+                }) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.width(80.dp)
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.rarity), // Replace with actual image
+                            contentDescription = "Sort by Rarity Icon",
+                            modifier = Modifier
 
-            Button(onClick = {
-                sortMode = "count"
-                ascending = !ascending
-            }) {
-                Text("Sort by Count")
-            }
-        }
 
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(3),
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(4.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-            horizontalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            items(sortedList) { entry ->
-                val item = entry.key
-                val count = entry.value
-                val imageRes = getDrawableResIdByName(context, item.name)
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Image(
-                        painter = painterResource(id = imageRes),
-                        contentDescription = item.name,
-                        modifier = Modifier.height(175.dp)
-                    )
-                    Text(
-                        text = "x$count",
-                        style = MaterialTheme.typography.bodySmall
-                    )
+                                .scale(3.1f)
+
+                        )
+
+                    }
+                }
+
+                Button(onClick = {
+                    sortMode = "count"
+                    ascending = !ascending
+
+                }) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.width(80.dp)
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.countbutton), // Replace with actual image
+                            contentDescription = "Sort by Count Icon",
+                            modifier = Modifier
+
+
+                                .scale(3.1f)
+                        )
+
+                    }
                 }
             }
 
 
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(3),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(4.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+                horizontalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                items(sortedList) { entry ->
+                    val item = entry.key
+                    val count = entry.value
+                    val imageRes = getDrawableResIdByName(context, item.name)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Image(
+                            painter = painterResource(id = imageRes),
+                            contentDescription = item.name,
+                            modifier = Modifier.height(175.dp)
+                        )
+                        Text(
+                            text = "x$count",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+                    }
+                }
+
+
+            }
         }
     }
-}
+    }
