@@ -5,18 +5,27 @@ import kotlin.random.Random
 
 object GachaLogic {
     val secretCars = listOf(
-        PNGImage("kitasanblack.png", count = 1, rarity = "Secret")//PLACEHOLDER
+        PNGImage("secret1.png", count = 1, rarity = "Secret"),
+        PNGImage("secret2.png", count = 1, rarity = "Secret"),
+        PNGImage("secret3.png", count = 1, rarity = "Secret"),
+        PNGImage("secret4.png", count = 1, rarity = "Secret"),
+        PNGImage("secret5.png", count = 1, rarity = "Secret")
     )
 
     val mythicCars = listOf(
         PNGImage("mythic1.png", 1, "Mythic"),
         PNGImage("mythic2.png", 1, "Mythic"),
-        PNGImage("mythic3.png", 1, "Mythic")
+        PNGImage("mythic3.png", 1, "Mythic"),
+        PNGImage("mythic4.png", 1, "Mythic"),
+        PNGImage("mythic5.png", 1, "Mythic")
     )
 
     val legendaryCars = listOf(
         PNGImage("legendary1.png", 1, "Legendary"),
-        PNGImage("legendary2.png", 1, "Legendary")
+        PNGImage("legendary2.png", 1, "Legendary"),
+        PNGImage("legendary3.png", 1, "Legendary"),
+        PNGImage("legendary4.png", 1, "Legendary"),
+        PNGImage("legendary5.png", 1, "Legendary")
     )
 
     val epicCars = listOf(

@@ -1,5 +1,6 @@
 package com.example.jdm_gacha_simulator.ui.collection
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -29,12 +30,31 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import com.example.jdm_gacha_simulator.R
+import com.example.jdm_gacha_simulator.utils.SessionManager
+import com.example.jdm_gacha_simulator.utils.TotalPullsRequest
 
 @Composable
 fun CollectionScreen(navController: NavController) {
     val context = LocalContext.current
     var sortMode by remember { mutableStateOf("rarity") }
     var ascending by remember { mutableStateOf(true) }
+    var totalPulls by remember { mutableStateOf(0) }
+
+    val userId = SessionManager.currentUserId
+
+    LaunchedEffect(true) {
+        if (userId != -1) {
+            TotalPullsRequest.fetchTotalPulls(
+                context,
+                userId,
+                onResult = { pulls -> totalPulls = pulls },
+                onError = { error ->
+                    Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+                }
+            )
+        }
+    }
+
 
     val rarityOrder = mapOf(
         "Secret" to 0,
@@ -45,26 +65,33 @@ fun CollectionScreen(navController: NavController) {
         "Common" to 5
     )
 
-    val rawCollection = SessionCollection.getCollection()
     val rawMap = SessionCollection.getMap() // assuming you create this getter
-    val sortedList = remember(sortMode, ascending, rawMap) {
+    val sortedList = run {
         val entries = rawMap.entries.toList()
+        for ((img, _) in entries) {
+            println("DEBUG: ${img.name} has rarity '${img.rarity}'")
+        }
         when (sortMode) {
             "count" -> if (ascending) {
                 entries.sortedBy { entry -> entry.value }
             } else {
                 entries.sortedByDescending { entry -> entry.value }
             }
-
             else -> if (ascending) {
-                entries.sortedBy { entry -> rarityOrder[entry.key.rarity] ?: Int.MAX_VALUE }
+                entries.sortedBy { entry ->
+                    val rarity = entry.key.rarity?.trim() ?: "Common"
+                    rarityOrder[rarity] ?: Int.MAX_VALUE
+                }
             } else {
                 entries.sortedByDescending { entry ->
-                    rarityOrder[entry.key.rarity] ?: Int.MIN_VALUE
+                    val rarity = entry.key.rarity?.trim() ?: "Common"
+                    rarityOrder[rarity] ?: Int.MIN_VALUE
                 }
             }
         }
     }
+
+
 
     Box(modifier = Modifier.fillMaxSize()) {
         // 🔹 Background image
@@ -145,6 +172,22 @@ fun CollectionScreen(navController: NavController) {
 
                     }
                 }
+                Spacer(modifier = Modifier.height(8.dp))
+
+
+
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Total Pulls: $totalPulls",
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyLarge
+                )
             }
 
 

@@ -1,15 +1,44 @@
 package com.example.jdm_gacha_simulator.utils
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.widget.Toast
-import okhttp3.*
+import io.ktor.client.*
+import io.ktor.client.engine.android.*
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.json.JSONArray
-import java.io.IOException
+import java.security.SecureRandom
+import java.security.cert.X509Certificate
+import javax.net.ssl.SSLContext
+import javax.net.ssl.X509TrustManager
+import javax.net.ssl.TrustManager
+import io.ktor.client.request.forms.*
+import io.ktor.util.*
 
 object GetCollectionRequest {
     private const val URL = "http://192.168.1.2/Gacha/get_collection.php"
-    private val client = OkHttpClient()
+
+    private val client = HttpClient(Android) {
+        engine {
+            sslManager = { _ ->
+                val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager {
+                    override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
+                    override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
+                    override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
+                })
+                SSLContext.getInstance("TLS").apply {
+                    init(null, trustAllCerts, SecureRandom())
+                }
+            }
+        }
+    }
 
     fun fetchCollection(
         context: Context,
@@ -17,54 +46,46 @@ object GetCollectionRequest {
         onSuccess: (List<Pair<String, Int>>) -> Unit,
         onError: (String) -> Unit
     ) {
-        val requestBody = FormBody.Builder()
-            .add("user_id", userId.toString())
-            .build()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val response: HttpResponse = client.post(URL) {
+                    setBody(FormDataContent(Parameters.build {
+                        append("user_id", userId.toString())
+                    }))
+                }
 
-        val request = Request.Builder()
-            .url(URL)
-            .post(requestBody)
-            .build()
+                val body = response.bodyAsText()
 
-        client.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                Log.e("GetCollectionRequest", "Network error: ${e.message}", e)
+                if (response.status.isSuccess() && body.isNotEmpty()) {
+                    val jsonArray = JSONArray(body)
+                    val list = mutableListOf<Pair<String, Int>>()
+
+                    for (i in 0 until jsonArray.length()) {
+                        val obj = jsonArray.getJSONObject(i)
+                        val name = obj.getString("card_name")
+                        val count = obj.getInt("count")
+                        list.add(Pair(name, count))
+                    }
+
+                    launch(Dispatchers.Main) {
+                        onSuccess(list)
+                    }
+                } else {
+                    val msg = "Failed with status: ${response.status.value}"
+                    Log.e("GetCollectionRequest", msg)
+                    showToast(context, msg)
+                    onError(msg)
+                }
+            } catch (e: Exception) {
+                Log.e("GetCollectionRequest", "Network error", e)
                 showToast(context, "Network error: ${e.message}")
                 onError(e.message ?: "Network error")
             }
-
-            override fun onResponse(call: Call, response: Response) {
-                val body = response.body?.string()
-                if (response.isSuccessful && !body.isNullOrEmpty()) {
-                    try {
-                        Log.d("GetCollectionRequest", "Response: $body")
-                        val jsonArray = JSONArray(body)
-                        val list = mutableListOf<Pair<String, Int>>()
-
-                        for (i in 0 until jsonArray.length()) {
-                            val obj = jsonArray.getJSONObject(i)
-                            val name = obj.getString("card_name")
-                            val count = obj.getInt("count")
-                            list.add(Pair(name, count))
-                        }
-
-                        onSuccess(list)
-                    } catch (e: Exception) {
-                        Log.e("GetCollectionRequest", "JSON parsing error", e)
-                        showToast(context, "Invalid response format")
-                        onError("Invalid response format")
-                    }
-                } else {
-                    Log.e("GetCollectionRequest", "Failed with response code: ${response.code}")
-                    showToast(context, "Failed to fetch collection: ${response.code}")
-                    onError("Failed to fetch collection: ${response.code}")
-                }
-            }
-        })
+        }
     }
 
     private fun showToast(context: Context, message: String) {
-        android.os.Handler(context.mainLooper).post {
+        Handler(Looper.getMainLooper()).post {
             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
         }
     }

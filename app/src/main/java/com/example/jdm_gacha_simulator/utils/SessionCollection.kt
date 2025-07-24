@@ -17,15 +17,27 @@ object SessionCollection {
         }
         totalPulls += items.size
     }
+    fun inferRarityFromName(name: String): String {
+        return when {
+            name.startsWith("secret") -> "Secret"
+            name.startsWith("mythic") -> "Mythic"
+            name.startsWith("legendary") -> "Legendary"
+            name.startsWith("epic") -> "Epic"
+            name.startsWith("rare") -> "Rare"
+            else -> "Common"
+        }
+    }
 
     // 🔄 NEW: Load collection data from backend
     fun setCollectionFromBackend(data: Map<String, Int>) {
         collectionMap.clear()
         for ((name, count) in data) {
-            val image = PNGImage(name = name, count = count)
+            val rarity = inferRarityFromName(name)
+            val image = PNGImage(name = name, count = count, rarity = rarity)
             collectionMap[image] = count
         }
     }
+
 
     fun getCollection(): Map<PNGImage, Int> {
         return collectionMap.toMap()

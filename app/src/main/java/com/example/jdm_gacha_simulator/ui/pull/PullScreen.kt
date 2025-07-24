@@ -49,6 +49,22 @@ fun PullCard(item: PNGImage, context: Context) {
 fun PullScreen(navController: NavController) {
     val context = LocalContext.current
     var pullResults by remember { mutableStateOf<List<PNGImage>>(emptyList()) }
+    var totalPulls by remember { mutableStateOf(0) }
+
+    val userId = SessionManager.currentUserId
+
+    LaunchedEffect(true) {
+        if (userId != -1) {
+            TotalPullsRequest.fetchTotalPulls(
+                context,
+                userId,
+                onResult = { pulls -> totalPulls = pulls },
+                onError = { error ->
+                    Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+                }
+            )
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Background image
@@ -64,26 +80,39 @@ fun PullScreen(navController: NavController) {
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.TopStart)
+                .padding(top = 8.dp, start = 8.dp, end = 8.dp)
         ) {
-            Text(
-                text = "Pull 10 PNGs!",
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color.White
-                ),
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Button(
+                    onClick = {
+                        SessionManager.logout()
+                        navController.navigate(Routes.LOGIN) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                    shape = RoundedCornerShape(50),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.logoutbutton),
+                            contentDescription = "Collection Icon",
+                            modifier = Modifier.scale(1.6f)
+                        )
+                    }
+                }
+            }
 
             if (pullResults.isNotEmpty()) {
-                Text(
-                    text = "Pulled Results",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    ),
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                )
-
                 val groups = listOf(
                     pullResults.take(3),
                     pullResults.drop(3).take(2),
@@ -111,6 +140,7 @@ fun PullScreen(navController: NavController) {
             }
         }
 
+
         // Bottom content: Total + Buttons
         Column(
             modifier = Modifier
@@ -118,7 +148,7 @@ fun PullScreen(navController: NavController) {
                 .align(Alignment.BottomCenter)
         ) {
             Text(
-                text = "Total Pulled: ${SessionCollection.getTotalPullCount()}",
+                text = "Total Pulls: $totalPulls",
                 style = MaterialTheme.typography.bodyMedium.copy(
                     color = Color.White,
                     fontWeight = FontWeight.Bold
@@ -138,23 +168,31 @@ fun PullScreen(navController: NavController) {
                     pullResults = results
                     SessionCollection.addPulledItems(results)
 
+                    var completedInserts = 0
                     for (card in results) {
                         InsertCardRequest.insertCard(
                             context = context,
                             userId = userId,
                             cardName = card.name,
-                            onSuccess = { response ->
-                                android.os.Handler(android.os.Looper.getMainLooper()).post {
-                                    Toast.makeText(context, "Saved: $response", Toast.LENGTH_SHORT).show()
+                            onSuccess = {
+                                completedInserts++
+                                if (completedInserts == results.size) {
+                                    TotalPullsRequest.fetchTotalPulls(
+                                        context,
+                                        userId,
+                                        onResult = { pulls -> totalPulls = pulls },
+                                        onError = { error ->
+                                            Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+                                        }
+                                    )
                                 }
                             },
                             onError = { error ->
-                                android.os.Handler(android.os.Looper.getMainLooper()).post {
-                                    Toast.makeText(context, "Error: $error", Toast.LENGTH_SHORT).show()
-                                }
+                                Toast.makeText(context, "Error: $error", Toast.LENGTH_SHORT).show()
                             }
                         )
                     }
+
                 },
                 shape = RoundedCornerShape(6.dp),
                 modifier = Modifier
