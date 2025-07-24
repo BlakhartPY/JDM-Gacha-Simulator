@@ -1,46 +1,30 @@
 package com.example.jdm_gacha_simulator.ui.pull
 
 import android.content.Context
+import android.widget.Toast
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.jdm_gacha_simulator.ui.navigation.Routes
-import android.widget.Toast
-import androidx.compose.ui.platform.LocalContext
-import com.example.jdm_gacha_simulator.api.ApiService
-import com.example.jdm_gacha_simulator.data.PNGImage
-import com.example.jdm_gacha_simulator.utils.SharedPrefsManager
-//import retrofit2.Call
-//import retrofit2.Callback
-//import retrofit2.Response
-//import com.example.jdm_gacha_simulator.api.RetrofitClient
-import com.example.jdm_gacha_simulator.utils.SessionCollection
-import com.example.jdm_gacha_simulator.utils.getDrawableResIdByName
-import androidx.compose.foundation.Image
-import androidx.compose.ui.res.painterResource
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.graphics.Color
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.ui.draw.scale
-import com.example.jdm_gacha_simulator.utils.GachaLogic
-
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
-
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import com.example.jdm_gacha_simulator.R
-
-
+import com.example.jdm_gacha_simulator.data.PNGImage
+import com.example.jdm_gacha_simulator.ui.navigation.Routes
+import com.example.jdm_gacha_simulator.utils.*
 
 @Composable
 fun PullCard(item: PNGImage, context: Context) {
@@ -57,12 +41,9 @@ fun PullCard(item: PNGImage, context: Context) {
     Image(
         painter = painterResource(id = imageRes),
         contentDescription = item.name,
-        Modifier
-            .height(175.dp)
+        modifier = Modifier.height(175.dp)
     )
-
 }
-
 
 @Composable
 fun PullScreen(navController: NavController) {
@@ -70,15 +51,15 @@ fun PullScreen(navController: NavController) {
     var pullResults by remember { mutableStateOf<List<PNGImage>>(emptyList()) }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Top content: Header + Pull Results
+        // Background image
         Image(
-            painter = painterResource(id = com.example.jdm_gacha_simulator.R.drawable.background02),
+            painter = painterResource(id = R.drawable.background02),
             contentDescription = "Background",
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
         )
 
-        // 🔹 Foreground content
+        // Foreground content
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -88,7 +69,7 @@ fun PullScreen(navController: NavController) {
                 text = "Pull 10 PNGs!",
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.ExtraBold,
-                    color = Color.White // Better for games with a dark background
+                    color = Color.White
                 ),
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
@@ -135,7 +116,6 @@ fun PullScreen(navController: NavController) {
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-
         ) {
             Text(
                 text = "Total Pulled: ${SessionCollection.getTotalPullCount()}",
@@ -145,10 +125,36 @@ fun PullScreen(navController: NavController) {
                 ),
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
+
             Button(
                 onClick = {
-                    pullResults = List(10) { GachaLogic.rollOnce() }
-                    SessionCollection.addPulledItems(pullResults)
+                    val userId = SessionManager.currentUserId
+                    if (userId == -1) {
+                        Toast.makeText(context, "User not logged in!", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+
+                    val results = List(10) { GachaLogic.rollOnce() }
+                    pullResults = results
+                    SessionCollection.addPulledItems(results)
+
+                    for (card in results) {
+                        InsertCardRequest.insertCard(
+                            context = context,
+                            userId = userId,
+                            cardName = card.name,
+                            onSuccess = { response ->
+                                android.os.Handler(android.os.Looper.getMainLooper()).post {
+                                    Toast.makeText(context, "Saved: $response", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            onError = { error ->
+                                android.os.Handler(android.os.Looper.getMainLooper()).post {
+                                    Toast.makeText(context, "Error: $error", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        )
+                    }
                 },
                 shape = RoundedCornerShape(6.dp),
                 modifier = Modifier
@@ -160,15 +166,12 @@ fun PullScreen(navController: NavController) {
                     horizontalArrangement = Arrangement.Center
                 ) {
                     Image(
-                        painter = painterResource(id = R.drawable.pullbutton), // Replace with your image resource
+                        painter = painterResource(id = R.drawable.pullbutton),
                         contentDescription = "Pull Icon",
-                        modifier = Modifier
-                            .scale(1.6f)
+                        modifier = Modifier.scale(1.6f)
                     )
-
                 }
             }
-
 
             OutlinedButton(
                 onClick = {
@@ -184,16 +187,12 @@ fun PullScreen(navController: NavController) {
                     horizontalArrangement = Arrangement.Center
                 ) {
                     Image(
-                        painter = painterResource(id = R.drawable.viewcollectionbutton), // Replace with your image resource
+                        painter = painterResource(id = R.drawable.viewcollectionbutton),
                         contentDescription = "Collection Icon",
-                        modifier = Modifier
-                            .scale(1.6f)
+                        modifier = Modifier.scale(1.6f)
                     )
-
                 }
             }
-
         }
     }
 }
-

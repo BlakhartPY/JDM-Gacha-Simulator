@@ -1,46 +1,52 @@
 package com.example.jdm_gacha_simulator.ui.login
 
+import android.content.Context
+import android.util.Log
 import android.widget.Toast
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.jdm_gacha_simulator.R
 import com.example.jdm_gacha_simulator.api.ApiService
 import com.example.jdm_gacha_simulator.data.User
 import com.example.jdm_gacha_simulator.ui.navigation.Routes
+import com.example.jdm_gacha_simulator.utils.GetCollectionRequest
+import com.example.jdm_gacha_simulator.utils.SessionCollection
+import com.example.jdm_gacha_simulator.utils.SessionManager
 import com.example.jdm_gacha_simulator.utils.SharedPrefsManager
-
-import androidx.compose.foundation.Image
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.layout.ContentScale
-import com.example.jdm_gacha_simulator.R
-import androidx.compose.ui.graphics.Color
-
-//import retrofit2.Call
-//import retrofit2.Callback
-//import retrofit2.Response
-//import com.example.jdm_gacha_simulator.api.RetrofitClient
+import io.ktor.client.*
+import io.ktor.client.call.*
+import io.ktor.client.engine.cio.*
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.*
+import io.ktor.client.request.forms.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
+import io.ktor.util.*
+import kotlinx.coroutines.*
 
 @Composable
 fun LoginScreen(navController: NavController) {
     val context = LocalContext.current
     var username by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") } // can be removed later if unused
-    var isLoading by remember { mutableStateOf(false) }
+    var password by remember { mutableStateOf("") }
+    val coroutineScope = rememberCoroutineScope()
 
     Box(
-        modifier = Modifier
-            .fillMaxSize(),
-
+        modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-
         Image(
             painter = painterResource(id = R.drawable.background01),
             contentDescription = "Background",
@@ -52,8 +58,6 @@ fun LoginScreen(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.fillMaxWidth()
         ) {
-
-
             OutlinedTextField(
                 value = username,
                 onValueChange = { username = it },
@@ -75,22 +79,16 @@ fun LoginScreen(navController: NavController) {
                     .padding(top = 16.dp)
             )
 
-
             Button(
                 onClick = {
-                    if (username.isNotBlank() && password.isNotBlank()) {
-                        val fakeUserId = "mock_${username}_123"
-                        SharedPrefsManager.saveUserId(fakeUserId)
-                        navController.navigate(Routes.PULL)
-                    } else {
-                        Toast.makeText(context, "Please enter both username and password", Toast.LENGTH_SHORT).show()
+                    coroutineScope.launch {
+                        KTORlogin(context, username, password, navController)
                     }
                 },
                 modifier = Modifier
                     .padding(top = 24.dp, start = 16.dp, end = 16.dp)
-
-
-                    .fillMaxWidth()
+                    .fillMaxWidth(),
+                enabled = username.isNotBlank() && password.isNotBlank()
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -100,49 +98,119 @@ fun LoginScreen(navController: NavController) {
                         painter = painterResource(id = R.drawable.button01),
                         contentDescription = "Login Icon",
                         contentScale = ContentScale.Fit,
-                        modifier = Modifier
-                            .scale(1.6f)
+                        modifier = Modifier.scale(1.6f)
                     )
-
                 }
             }
 
+            Spacer(modifier = Modifier.height(8.dp))
 
-            //    onClick = {
-            //        if (username.isNotBlank() && password.isNotBlank()) {
-            //            isLoading = true
-            //            val api = RetrofitClient.instance.create(ApiService::class.java)
-            //            api.login(username).enqueue(object : Callback<User> {
-            //                override fun onResponse(call: Call<User>, response: Response<User>) {
-            //                    isLoading = false
-            //                    if (response.isSuccessful) {
-            //                        val user = response.body()
-            //                        if (user != null) {
-            //                            SharedPrefsManager.saveUserId(user.id)
-            //                            navController.navigate(Routes.PULL)
-            //                        } else {
-            //                            Toast.makeText(context, "Login failed: empty user", Toast.LENGTH_SHORT).show()
-            //                        }
-            //                    } else {
-            //                        Toast.makeText(context, "Invalid response", Toast.LENGTH_SHORT).show()
-            //                    }
-            //                }
-            //
-            //                override fun onFailure(call: Call<User>, t: Throwable) {
-            //                    isLoading = false
-            //                    Toast.makeText(context, "Network error", Toast.LENGTH_SHORT).show()
-            //                }
-            //            })
-            //        } else {
-            //            Toast.makeText(context, "Please enter both username and password", Toast.LENGTH_SHORT).show()
-            //        }
-            //    },
-            //    modifier = Modifier
-            //        .padding(top = 24.dp)
-            //        .fillMaxWidth()
-            //) {
-            //    Text(if (isLoading) "Logging in..." else "Start")
-            //}
+            Button(
+                onClick = {
+                    coroutineScope.launch {
+                        registerUser(context, username, password)
+                    }
+                },
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .fillMaxWidth(),
+                enabled = username.isNotBlank() && password.isNotBlank()
+            ) {
+                Text("Register")
+            }
         }
     }
+}
+
+suspend fun KTORlogin(context: Context, username: String, password: String, navController: NavController) {
+    val client = HttpClient(CIO)
+    try {
+        val response = client.post("http://192.168.1.2/Gacha/login.php") {
+            setBody(FormDataContent(Parameters.build {
+                append("username", username)
+                append("password", password)
+            }))
+            headers {
+                append(HttpHeaders.ContentType, ContentType.Application.FormUrlEncoded)
+            }
+        }
+
+        val body = response.bodyAsText().trim()
+
+        withContext(Dispatchers.Main) {
+            Log.d("KTORlogin", "Response: $body")
+
+            if (body.startsWith("Login successful")) {
+                val parts = body.split("|")
+                val userId = parts.getOrNull(1)?.toIntOrNull()
+
+                if (userId != null && userId != -1) {
+                    SessionManager.currentUserId = userId
+                    SharedPrefsManager.saveUserId(userId)
+
+                    Toast.makeText(context, "Login successful (ID: $userId)", Toast.LENGTH_SHORT).show()
+
+                    GetCollectionRequest.fetchCollection(
+                        context,
+                        userId = userId,
+                        onSuccess = { collectionList ->
+                            collectionList.forEach { (name, count) ->
+                                Log.d("Card", "$name x$count")
+                            }
+                            SessionCollection.setCollectionFromBackend(collectionList.toMap())
+
+                            CoroutineScope(Dispatchers.Main).launch {
+                                navController.navigate(Routes.PULL) {
+                                    popUpTo(Routes.LOGIN) { inclusive = true }
+                                    launchSingleTop = true
+                                }
+                            }
+                        },
+                        onError = {
+                            CoroutineScope(Dispatchers.Main).launch {
+                                Toast.makeText(context, "Error fetching collection: $it", Toast.LENGTH_SHORT).show()
+                                navController.navigate(Routes.PULL) {
+                                    popUpTo(Routes.LOGIN) { inclusive = true }
+                                    launchSingleTop = true
+                                }
+                            }
+                        }
+                    )
+                } else {
+                    Toast.makeText(context, "Failed to parse user ID", Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                Toast.makeText(context, "Login failed: $body", Toast.LENGTH_SHORT).show()
+            }
+        }
+    } catch (e: Exception) {
+        withContext(Dispatchers.Main) {
+            Log.e("KTORlogin", "Exception: ${e.message}", e)
+            Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    } finally {
+        client.close()
+    }
+}
+
+suspend fun registerUser(context: Context, username: String, password: String) {
+    val client = HttpClient(CIO)
+    try {
+        val response: HttpResponse = client.get("http://192.168.1.2/Gacha/register.php") {
+            url {
+                parameters.append("username", username)
+                parameters.append("password", password)
+            }
+        }
+        val result = response.bodyAsText()
+        context.toast(result)
+    } catch (e: Exception) {
+        context.toast("Error: ${e.localizedMessage}")
+    } finally {
+        client.close()
+    }
+}
+
+fun Context.toast(message: String) {
+    Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
 }

@@ -18,21 +18,29 @@ object SessionCollection {
         totalPulls += items.size
     }
 
+    // 🔄 NEW: Load collection data from backend
+    fun setCollectionFromBackend(data: Map<String, Int>) {
+        collectionMap.clear()
+        for ((name, count) in data) {
+            val image = PNGImage(name = name, count = count)
+            collectionMap[image] = count
+        }
+    }
+
     fun getCollection(): Map<PNGImage, Int> {
+        return collectionMap.toMap()
+    }
+
+    fun getMap(): Map<PNGImage, Int> {
         return collectionMap.toMap()
     }
 
     fun getTotalPullCount(): Int {
         return totalPulls
     }
-    fun getMap(): Map<PNGImage, Int> {
-        return collectionMap.toMap()
-    }
-
 
     fun clear() {
         collectionMap.clear()
         totalPulls = 0
     }
-
 }
